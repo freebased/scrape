@@ -5,6 +5,7 @@ declare -A threadlist
 # Read from args
 while(($# > 0)); do
     [[ -d ${1} ]] && outpath=${1} ||
+    dir=${1}
     [[ ${1} =~ ${boardreg} ]] && threadlist[${BASH_REMATCH[2]}]=${BASH_REMATCH[1]}
     shift
 done
@@ -15,7 +16,7 @@ while [[ ! -t 0 ]] && read -r line; do
     [[ ${line} =~ ${boardreg} ]] && threadlist[${BASH_REMATCH[2]}]=${BASH_REMATCH[1]}
 done
 
-[[ -d ${outpath} ]] || outpath=./
+[[ -d ${outpath} ]] || outpath="${dir}"
 
 for thread in "${!threadlist[@]}"; do
     board=${threadlist[${thread}]} || continue
