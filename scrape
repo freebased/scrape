@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+declare -r boardreg='/([a-z]{1,4})/thread/([0-9]+)'
+declare -A threadlist
+
+# Read from args
+while(($# > 0)); do
+    [[ -d ${1} ]] && outpath=${1} ||
+    [[ ${1} =~ ${boardreg} ]] && threadlist[${BASH_REMATCH[2]}]=${BASH_REMATCH[1]}
+    shift
+done
+
+# Read from stdin
+while [[ ! -t 0 ]] && read -r line; do
+    [[ -d ${line} ]] && outpath=${line} ||
+    [[ ${line} =~ ${boardreg} ]] && threadlist[${BASH_REMATCH[2]}]=${BASH_REMATCH[1]}
+done
+
+[[ -d ${outpath} ]] || outpath=./
+
+for thread in "${!threadlist[@]}"; do
+    board=${threadlist[${thread}]} || continue
+    printf 'Finding and downloading images for /%s/%s.\n' "${board}" "${thread}"
+    mapfile -t images < <(curl -s "https://a.4cdn.org/${board}/thread/${thread}.json" | jq -jr '.posts[] | select(.tim != null) | .tim, .ext + "\n"')
+    printf "https://i.4cdn.org/${board}/%s\0" "${images[@]}" | parallel -0 -j16 --bar "wget -q -nc -P ${outpath} -- {}"
+done
